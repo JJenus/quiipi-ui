@@ -1,52 +1,97 @@
-/* src/index.css */
+/* src/index.css - Complete theme fix */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Light Mode - Core Background */
+    --background: 240 30% 98%; /* #F7F8FC */
+    --foreground: 0 0% 10%; /* #1A1A1A */
+    
+    /* Surface / Cards */
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 0 0% 10%; /* #1A1A1A */
+    
+    /* Popover / Dropdowns */
+    --popover: 0 0% 100%; /* #FFFFFF */
+    --popover-foreground: 0 0% 10%; /* #1A1A1A */
+    
+    /* Primary Brand */
+    --primary: 270 38% 26%; /* #3E1E68 */
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary */
+    --secondary: 240 30% 96%; /* #F1F2F8 */
+    --secondary-foreground: 270 38% 26%; /* #3E1E68 */
+    
+    /* Muted */
+    --muted: 240 30% 96%; /* #F1F2F8 */
+    --muted-foreground: 0 0% 48%; /* #7A7A7A */
+    
+    /* Accent */
+    --accent: 336 70% 62%; /* #E45A92 */
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive */
+    --destructive: 0 84% 51%; /* #DC2626 */
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Borders */
+    --border: 240 25% 92%; /* #E3E5EF */
+    --input: 240 25% 92%; /* #E3E5EF */
+    --ring: 270 38% 26%; /* #3E1E68 */
+    
     --radius: 0.5rem;
+    
+    /* Success, Warning, Info */
+    --success: 142 76% 36%; /* #16A34A */
+    --warning: 38 92% 50%; /* #D97706 */
+    --info: 217 91% 60%; /* #2563EB */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Dark Mode - Core Background */
+    --background: 252 27% 8%; /* #0F0C1A */
+    --foreground: 240 14% 95%; /* #F2F2F5 */
+    
+    /* Surface / Cards */
+    --card: 252 30% 12%; /* #17132A */
+    --card-foreground: 240 14% 95%; /* #F2F2F5 */
+    
+    /* Popover */
+    --popover: 252 32% 15%; /* #1E1835 */
+    --popover-foreground: 240 14% 95%; /* #F2F2F5 */
+    
+    /* Primary Brand */
+    --primary: 263 38% 46%; /* #6D4BA3 */
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary */
+    --secondary: 252 30% 12%; /* #17132A */
+    --secondary-foreground: 263 38% 52%; /* #8A67C2 */
+    
+    /* Muted */
+    --muted: 252 32% 15%; /* #1E1835 */
+    --muted-foreground: 248 8% 58%; /* #8E8EA0 */
+    
+    /* Accent */
+    --accent: 336 70% 68%; /* #F06AA3 */
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive */
+    --destructive: 0 84% 60%; /* #EF4444 */
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Borders */
+    --border: 252 28% 21%; /* #2A2545 */
+    --input: 252 28% 21%; /* #2A2545 */
+    --ring: 263 38% 52%; /* #8A67C2 */
+    
+    /* Success, Warning, Info */
+    --success: 142 70% 49%; /* #22C55E */
+    --warning: 38 92% 58%; /* #F59E0B */
+    --info: 217 91% 66%; /* #3B82F6 */
   }
 }
 
@@ -55,35 +100,58 @@
     @apply border-border;
   }
   
+  html {
+    @apply h-full;
+  }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground min-h-full antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Ensure smooth theme transitions */
+  * {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
   }
 }
 
+/* Custom utilities */
+@layer utilities {
+  .bg-success {
+    background-color: hsl(var(--success));
+  }
+  .text-success {
+    color: hsl(var(--success));
+  }
+  .bg-warning {
+    background-color: hsl(var(--warning));
+  }
+  .text-warning {
+    color: hsl(var(--warning));
+  }
+  .bg-info {
+    background-color: hsl(var(--info));
+  }
+  .text-info {
+    color: hsl(var(--info));
+  }
+}
 
-/* Add to src/index.css - at the end of the file */
-
-/* Improve touch targets on mobile */
+/* Mobile optimizations */
 @media (max-width: 768px) {
   button, 
   [role="button"],
-  a {
+  a:not(.no-min-height) {
     min-height: 44px;
     min-width: 44px;
   }
   
-  /* Better spacing for mobile forms */
   input, select, textarea {
-    font-size: 16px !important; /* Prevents zoom on iOS */
+    font-size: 16px !important;
   }
   
-  /* Improve card readability on mobile */
-  .card {
-    margin-bottom: 1rem;
-  }
-  
-  /* Adjust padding for mobile */
   .container {
     padding-left: 1rem;
     padding-right: 1rem;
@@ -93,19 +161,4 @@
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
-}
-
-/* Better font rendering */
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-/* Improve modal/dialog responsiveness */
-@media (max-width: 640px) {
-  .dialog-content {
-    max-width: calc(100% - 2rem) !important;
-    margin: 1rem !important;
-  }
 }

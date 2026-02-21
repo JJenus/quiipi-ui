@@ -17,6 +17,8 @@ class ApiService {
     this.api.interceptors.request.use(
       (config) => {
         const token = localStorage.getItem('accessToken');
+        
+        console.log("accessToken: ", token)
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -36,12 +38,14 @@ class ApiService {
           
           try {
             const refreshToken = localStorage.getItem('refreshToken');
+            console.log("localStorage-refreshToken", refreshToken)
             const response = await this.refreshToken(refreshToken!);
             localStorage.setItem('accessToken', response.data.accessToken);
             return this.api(originalRequest);
           } catch (refreshError) {
+            console.log(refreshError)
             // Redirect to login
-            window.location.href = '/login';
+            // window.location.href = '/login';
             return Promise.reject(refreshError);
           }
         }
@@ -52,6 +56,7 @@ class ApiService {
   }
 
   private async refreshToken(refreshToken: string) {
+    console.log("Api-refreshToken", refreshToken)
     return this.api.post('/auth/refresh-token', { refreshToken });
   }
 

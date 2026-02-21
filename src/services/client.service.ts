@@ -1,3 +1,4 @@
+// src/services/client.service.ts - Update imports
 import { apiService } from './api';
 import { 
   Client, 
@@ -5,6 +6,7 @@ import {
   ClientCreateRequest, 
   ClientUpdateRequest, 
   ClientFilters,
+  ClientFinancialSummary,
   Project,
   Subscription,
   Invoice
@@ -45,13 +47,8 @@ class ClientService {
     return apiService.get<Subscription[]>(`${this.baseUrl}/${id}/subscriptions`);
   }
 
-  async getClientFinancialSummary(id: string): Promise<{
-    totalPendingBalance: number;
-    totalInvoiced: number;
-    totalPaid: number;
-    overdueAmount: number;
-  }> {
-    return apiService.get(`${this.baseUrl}/${id}/financial-summary`);
+  async getClientFinancialSummary(id: string): Promise<ClientFinancialSummary> {
+    return apiService.get<ClientFinancialSummary>(`${this.baseUrl}/${id}/financial-summary`);
   }
 
   async getClientSummary(id: string): Promise<ClientSummary> {

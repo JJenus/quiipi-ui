@@ -1,3 +1,4 @@
+// src/services/subscription.service.ts - Add missing methods
 import { apiService } from './api';
 import { 
   Subscription, 

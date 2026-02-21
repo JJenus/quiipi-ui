@@ -31,3 +31,10 @@ export const toCamelCase = (str: string): string => {
     group.toUpperCase().replace('-', '').replace('_', '')
   );
 };
+
+export const formatCurrency = (amount: number, currency: string = 'USD'): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+  }).format(amount);
+};

@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@/components/ui/responsive-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Search, MoreHorizontal } from 'lucide-react';
 import { ClientForm } from '@/components/clients/ClientForm';
@@ -76,6 +76,7 @@ export const Clients: React.FC = () => {
             Manage your clients and their information.
           </p>
         </div>
+        
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button className="w-full sm:w-auto">
@@ -83,17 +84,19 @@ export const Clients: React.FC = () => {
               Add Client
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-[600px] p-0 sm:p-6">
+            <DialogHeader className="p-4 sm:p-0 border-b sm:border-0">
               <DialogTitle>Create New Client</DialogTitle>
             </DialogHeader>
-            <ClientForm
-              onSubmit={async (data) => {
-                await createClient(data);
-                setIsCreateDialogOpen(false);
-              }}
-              onCancel={() => setIsCreateDialogOpen(false)}
-            />
+            <div className="max-h-[calc(90vh-8rem)] overflow-y-auto px-4 pb-4 sm:px-0 sm:pb-0">
+              <ClientForm
+                onSubmit={async (data) => {
+                  await createClient(data);
+                  setIsCreateDialogOpen(false);
+                }}
+                onCancel={() => setIsCreateDialogOpen(false)}
+              />
+            </div>
           </DialogContent>
         </Dialog>
       </div>

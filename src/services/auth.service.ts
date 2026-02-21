@@ -20,7 +20,7 @@ const MOCK_USER: User = {
 
 class AuthService {
   private readonly baseUrl = '/auth';
-  private useMock = true; // Set to false to use real API
+  private useMock = false; // Set to false to use real API
 
   async login(data: LoginRequest): Promise<LoginResponse> {
     if (this.useMock) {
@@ -48,7 +48,7 @@ class AuthService {
     }
     
     const response = await apiService.post<LoginResponse>(`${this.baseUrl}/login`, data);
-    
+    console.log("setting-refreshToken", response.refreshToken)
     // Store tokens
     localStorage.setItem('accessToken', response.accessToken);
     localStorage.setItem('refreshToken', response.refreshToken);
@@ -97,6 +97,7 @@ class AuthService {
   }
 
   async refreshToken(): Promise<{ accessToken: string }> {
+    console.log("refreshToken", "rrefreshToken")
     if (this.useMock) {
       await new Promise(resolve => setTimeout(resolve, 300));
       return {
@@ -105,7 +106,8 @@ class AuthService {
     }
     
     const refreshToken = localStorage.getItem('refreshToken');
-    return apiService.post<{ accessToken: string }>(`${this.baseUrl}/refresh-token`, { refreshToken });
+    console.log("refreshToken", rrefreshToken)
+    return apiService.post<{ refreshToken: string }>(`${this.baseUrl}/refresh-token`, { refreshToken });
   }
 
   async getProfile(): Promise<User> {

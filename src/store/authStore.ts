@@ -29,7 +29,7 @@ export const useAuthStore = create<AuthStore>()(
       
       loadProfile: async () => {
         if (!get().isAuthenticated) return;
-        
+        console.log("loadProfile...")
         set({ isLoading: true });
         try {
           const user = await authService.getProfile();

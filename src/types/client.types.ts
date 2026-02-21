@@ -1,4 +1,6 @@
-import { Address, BaseEntity, Status } from './common.types';
+// src/types/client.types.ts - Add missing types
+import { Address, BaseEntity } from './common.types';
+import { InvoiceStatus } from './invoice.types';
 
 export enum ClientStatus {
   ACTIVE = 'ACTIVE',
@@ -33,6 +35,32 @@ export interface ClientSummary {
   pendingBalance: number;
   activeProjectsCount: number;
   overdueInvoicesCount: number;
+}
+
+export interface ClientFinancialSummary {
+  totalInvoiced: number;
+  totalPaid: number;
+  pendingBalance: number;
+  recentInvoices: InvoiceSummary[];
+  recentPayments: PaymentSummary[];
+}
+
+export interface InvoiceSummary {
+  id: string;
+  invoiceNumber: string;
+  issueDate: string;
+  dueDate: string;
+  totalAmount: number;
+  pendingBalance: number;
+  status: InvoiceStatus;
+}
+
+export interface PaymentSummary {
+  id: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: string;
+  referenceNumber?: string;
 }
 
 export interface ClientCreateRequest {

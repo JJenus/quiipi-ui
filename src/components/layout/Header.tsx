@@ -1,3 +1,4 @@
+// src/components/layout/Header.tsx - Update with NotificationBell
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -13,13 +14,16 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/formatters';
 import { User, LogOut, Settings, UserCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-end border-b bg-background px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-end gap-2 border-b bg-background px-6">
+      <NotificationBell />
+      
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">

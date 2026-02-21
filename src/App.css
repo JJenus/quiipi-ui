@@ -40,3 +40,43 @@
 .read-the-docs {
   color: #888;
 }
+
+
+/* =========================
+   MOBILE IMPROVEMENTS
+   ========================= */
+
+@media (max-width: 768px) {
+  button,
+  [role="button"],
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  .card {
+    margin-bottom: 1rem;
+  }
+
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* =========================
+   DIALOG RESPONSIVENESS
+   ========================= */
+
+@media (max-width: 640px) {
+  .dialog-content {
+    max-width: calc(100% - 2rem) !important;
+    margin: 1rem !important;
+  }
+}

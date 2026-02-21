@@ -13,7 +13,9 @@ export const useAuth = () => {
   const login = useCallback(async (data: LoginRequest) => {
     setLoading(true);
     try {
+      console.log("useAuth calls authservice login")
       const response = await authService.login(data);
+      console.log(response)
       setTokens(response.accessToken, response.refreshToken);
       setUser(response.user);
       setAuthenticated(true);
@@ -24,6 +26,7 @@ export const useAuth = () => {
       });
       navigate('/dashboard');
     } catch (error: any) {
+      console.log(error)
       addNotification({
         type: 'error',
         message: error.message || 'Login failed',

@@ -1,7 +1,7 @@
+// src/services/invoice.service.ts - Add missing methods
 import { apiService } from './api';
 import { 
   Invoice, 
-  InvoiceSummary,
   InvoiceCreateRequest, 
   InvoiceUpdateRequest,
   InvoicePaymentRequest,

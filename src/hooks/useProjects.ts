@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '@/services/project.service';
 import { useUIStore } from '@/store/uiStore';
-import { ProjectCreateRequest, ProjectUpdateRequest, MilestoneCreateRequest, ProjectStatus } from '@/types';
+import { ProjectCreateRequest, ProjectUpdateRequest, MilestoneCreateRequest, ProjectStatus, Project, Invoice } from '@/types';
 
 export const useProjects = (filters?: {
   status?: ProjectStatus;
@@ -154,4 +154,33 @@ export const useProjectMilestones = (projectId: string) => {
     addMilestone: addMilestone.mutate,
     isAdding: addMilestone.isPending
   };
+};
+
+
+export const useProject = (id: string) => {
+  const {
+    data: project,
+    isLoading,
+    error
+  } = useQuery<Project>({
+    queryKey: ['project', id],
+    queryFn: () => projectService.getProject(id),
+    enabled: !!id
+  });
+
+  return { project, isLoading, error };
+};
+
+export const useProjectInvoices = (projectId: string) => {
+  const {
+    data: invoices = [],
+    isLoading,
+    error
+  } = useQuery<Invoice[]>({
+    queryKey: ['project-invoices', projectId],
+    queryFn: () => projectService.getProjectInvoices(projectId),
+    enabled: !!projectId
+  });
+
+  return { invoices, isLoading, error };
 };

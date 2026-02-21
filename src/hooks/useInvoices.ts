@@ -142,3 +142,17 @@ export const useOverdueInvoices = () => {
 
   return { invoices, isLoading, error };
 };
+
+export const useInvoice = (id: string) => {
+  const {
+    data: invoice,
+    isLoading,
+    error
+  } = useQuery<Invoice>({
+    queryKey: ['project', id],
+    queryFn: () => invoiceService.getInvoice(id),
+    enabled: !!id
+  });
+
+  return { invoice, isLoading, error };
+};

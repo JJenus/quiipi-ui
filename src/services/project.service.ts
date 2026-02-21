@@ -1,3 +1,4 @@
+// src/services/project.service.ts - Add missing methods
 import { apiService } from './api';
 import { 
   Project, 
