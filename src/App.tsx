@@ -24,6 +24,13 @@ import { SubscriptionDetails } from '@/pages/SubscriptionDetails';
 import { Invoices } from '@/pages/Invoices';
 import { InvoiceDetails } from '@/pages/InvoiceDetails';
 import { Settings } from '@/pages/Settings';
+// src/App.tsx - Add these routes inside the ProtectedRoute
+
+// Add these imports
+import { NewClient } from '@/pages/clients/NewClient';
+import { NewProject } from '@/pages/projects/NewProject';
+import { NewInvoice } from '@/pages/invoices/NewInvoice';
+import { NewSubscription } from '@/pages/subscriptions/NewSubscription';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +68,10 @@ function App() {
                 <Route path="subscriptions/:id" element={<SubscriptionDetails />} />
                 <Route path="invoices" element={<Invoices />} />
                 <Route path="invoices/:id" element={<InvoiceDetails />} />
+                <Route path="clients/new" element={<NewClient />} />
+                <Route path="projects/new" element={<NewProject />} />
+                <Route path="invoices/new" element={<NewInvoice />} />
+                <Route path="subscriptions/new" element={<NewSubscription />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="settings/*" element={<Settings />} />
               </Route>
