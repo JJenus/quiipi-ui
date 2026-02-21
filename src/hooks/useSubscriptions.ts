@@ -1,7 +1,8 @@
+// src/hooks/useSubscriptions.ts - Add the missing useSubscription hook
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { subscriptionService } from '@/services/subscription.service';
 import { useUIStore } from '@/store/uiStore';
-import { SubscriptionCreateRequest, SubscriptionUpdateRequest, SubscriptionRenewalRequest, SubscriptionFilters } from '@/types';
+import { SubscriptionCreateRequest, SubscriptionUpdateRequest, SubscriptionRenewalRequest, SubscriptionFilters, Subscription } from '@/types';
 
 export const useSubscriptions = (filters?: SubscriptionFilters) => {
   const queryClient = useQueryClient();
@@ -111,6 +112,21 @@ export const useSubscriptions = (filters?: SubscriptionFilters) => {
   };
 };
 
+
+export const useSubscription = (id: string) => {
+  const {
+    data: subscription,
+    isLoading,
+    error
+  } = useQuery<Subscription>({
+    queryKey: ['subscription', id],
+    queryFn: () => subscriptionService.getSubscription(id),
+    enabled: !!id
+  });
+
+  return { subscription, isLoading, error };
+};
+
 export const useExpiringSubscriptions = (days: number = 30) => {
   const {
     data: subscriptions = [],
@@ -119,6 +135,19 @@ export const useExpiringSubscriptions = (days: number = 30) => {
   } = useQuery({
     queryKey: ['expiring-subscriptions', days],
     queryFn: () => subscriptionService.getExpiringSubscriptions(days)
+  });
+
+  return { subscriptions, isLoading, error };
+};
+
+export const useExpiredSubscriptions = () => {
+  const {
+    data: subscriptions = [],
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['expired-subscriptions'],
+    queryFn: () => subscriptionService.getExpiredSubscriptions()
   });
 
   return { subscriptions, isLoading, error };

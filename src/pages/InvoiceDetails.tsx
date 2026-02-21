@@ -15,6 +15,16 @@ import {
   DialogDescription,
 } from '@/components/ui/responsive-dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,6 +34,8 @@ import {
 } from '@/components/ui/table';
 import {
   ArrowLeft,
+  Edit,
+  Trash2,
   Download,
   Mail,
   Printer,
@@ -46,6 +58,7 @@ import {
 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/utils/dateUtils';
 import { PaymentForm } from '@/components/invoices/PaymentForm';
+import { InvoiceForm } from '@/components/invoices/InvoiceForm';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { InvoiceStatus, PaymentMethod } from '@/types';
 import {
@@ -61,7 +74,9 @@ export const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { invoice, isLoading } = useInvoice(id!);
-  const { addPayment, sendInvoice, updateInvoice } = useInvoices();
+  const { updateInvoice, deleteInvoice, addPayment, sendInvoice } = useInvoices();
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
@@ -94,6 +109,17 @@ export const InvoiceDetails: React.FC = () => {
     }
   };
 
+  const handleUpdate = async (data: any) => {
+    await updateInvoice({ id: id!, data });
+    setShowEditDialog(false);
+  };
+
+  const handleDelete = async () => {
+    await deleteInvoice(id!);
+    setShowDeleteDialog(false);
+    navigate('/invoices');
+  };
+
   const handleAddPayment = async (paymentData: any) => {
     await addPayment({ id: id!, data: paymentData });
     setShowPaymentForm(false);
@@ -119,27 +145,21 @@ export const InvoiceDetails: React.FC = () => {
   };
 
   const handleDownloadPDF = () => {
-    // In a real app, this would call an API endpoint
     window.print();
   };
 
   if (isLoading) {
     return (
       <div className="space-y-4 sm:space-y-6">
-        {/* Mobile Skeleton */}
         <div className="flex items-center space-x-4">
           <Skeleton className="h-10 w-10" />
           <Skeleton className="h-8 w-48" />
         </div>
-        
-        {/* Stats Skeleton */}
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
-        
-        {/* Main Content Skeleton */}
         <Skeleton className="h-96" />
       </div>
     );
@@ -183,83 +203,34 @@ export const InvoiceDetails: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Badge className={getStatusColor(invoice.status)}>
-            {invoice.status.replace('_', ' ')}
-          </Badge>
-          {invoice.isOverdue && (
-            <Badge variant="destructive" className="animate-pulse">
-              Overdue by {invoice.daysOverdue} days
-            </Badge>
-          )}
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowEditDialog(true)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+          <Button 
+            variant="outline" 
+            className="text-red-600 hover:text-red-700 hover:bg-red-100"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </Button>
         </div>
       </div>
 
-      {/* Action Buttons - Mobile Dropdown */}
-      {isMobile ? (
-        <div className="flex gap-2 print:hidden">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="flex-1">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Actions
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={handleDownloadPDF}>
-                <Printer className="mr-2 h-4 w-4" />
-                Print/Download PDF
-              </DropdownMenuItem>
-              {invoice.status === InvoiceStatus.DRAFT && (
-                <DropdownMenuItem onClick={handleSendInvoice} disabled={isSending}>
-                  <Mail className="mr-2 h-4 w-4" />
-                  {isSending ? 'Sending...' : 'Send Invoice'}
-                </DropdownMenuItem>
-              )}
-              {canAddPayment && (
-                <>
-                  <DropdownMenuItem onClick={() => setShowPaymentForm(true)}>
-                    <DollarSign className="mr-2 h-4 w-4" />
-                    Record Payment
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleMarkAsPaid}>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Mark as Paid
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      ) : (
-        /* Desktop Action Buttons */
-        <div className="flex flex-wrap gap-2 print:hidden">
-          <Button variant="outline" onClick={handleDownloadPDF}>
-            <Printer className="mr-2 h-4 w-4" />
-            Print/PDF
-          </Button>
-          
-          {invoice.status === InvoiceStatus.DRAFT && (
-            <Button variant="outline" onClick={handleSendInvoice} disabled={isSending}>
-              <Mail className="mr-2 h-4 w-4" />
-              {isSending ? 'Sending...' : 'Send Invoice'}
-            </Button>
-          )}
-          
-          {canAddPayment && (
-            <>
-              <Button onClick={() => setShowPaymentForm(true)}>
-                <DollarSign className="mr-2 h-4 w-4" />
-                Record Payment
-              </Button>
-              <Button variant="outline" onClick={handleMarkAsPaid}>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Mark as Paid
-              </Button>
-            </>
-          )}
-        </div>
-      )}
+      {/* Status Badge */}
+      <div className="flex flex-wrap gap-2 print:hidden">
+        <Badge className={getStatusColor(invoice.status)}>
+          {invoice.status.replace('_', ' ')}
+        </Badge>
+        {invoice.isOverdue && (
+          <Badge variant="destructive" className="animate-pulse">
+            Overdue by {invoice.daysOverdue} days
+          </Badge>
+        )}
+      </div>
 
       {/* Overdue Alert */}
       {invoice.isOverdue && (
@@ -273,9 +244,100 @@ export const InvoiceDetails: React.FC = () => {
         </Alert>
       )}
 
+      {/* Quick Action Buttons */}
+      <div className="flex flex-wrap gap-2 print:hidden">
+        <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+          <Printer className="mr-2 h-4 w-4" />
+          Print/PDF
+        </Button>
+        
+        {invoice.status === InvoiceStatus.DRAFT && (
+          <Button variant="outline" size="sm" onClick={handleSendInvoice} disabled={isSending}>
+            <Mail className="mr-2 h-4 w-4" />
+            {isSending ? 'Sending...' : 'Send Invoice'}
+          </Button>
+        )}
+        
+        {canAddPayment && (
+          <>
+            <Button size="sm" onClick={() => setShowPaymentForm(true)}>
+              <DollarSign className="mr-2 h-4 w-4" />
+              Record Payment
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleMarkAsPaid}>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Mark as Paid
+            </Button>
+          </>
+        )}
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Issue Date
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-lg font-bold">{formatDate(invoice.issueDate, 'MMM d')}</p>
+            <p className="text-xs text-muted-foreground">{formatDate(invoice.issueDate, 'yyyy')}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Due Date
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-lg font-bold ${invoice.isOverdue ? 'text-red-600' : ''}`}>
+              {formatDate(invoice.dueDate, 'MMM d')}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {invoice.isOverdue ? `${invoice.daysOverdue} days overdue` : formatDate(invoice.dueDate, 'yyyy')}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Total Amount
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-lg font-bold">{formatCurrency(invoice.totalAmount)}</p>
+            <p className="text-xs text-muted-foreground">
+              {invoice.items.length} item{invoice.items.length !== 1 ? 's' : ''}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Pending Balance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-lg font-bold text-orange-600">{formatCurrency(invoice.pendingBalance)}</p>
+            <p className="text-xs text-muted-foreground">
+              {invoice.amountPaid > 0 ? `${formatCurrency(invoice.amountPaid)} paid` : 'No payments yet'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Mobile Tabs */}
       {isMobile ? (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="print:hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="items">Items</TabsTrigger>
@@ -307,67 +369,50 @@ export const InvoiceDetails: React.FC = () => {
                     </div>
                   )}
                 </div>
+
                 {invoice.projectName && (
-                  <div className="pt-2 border-t">
+                  <div 
+                    className="pt-2 border-t cursor-pointer hover:bg-muted/50 -mx-3 px-3 py-2 rounded"
+                    onClick={() => navigate(`/projects/${invoice.projectId}`)}
+                  >
                     <p className="text-xs text-muted-foreground">Project</p>
-                    <p className="text-sm font-medium">{invoice.projectName}</p>
+                    <p className="text-sm font-medium text-blue-600 hover:underline">
+                      {invoice.projectName}
+                    </p>
+                  </div>
+                )}
+
+                {invoice.clientId && (
+                  <div 
+                    className="pt-2 border-t cursor-pointer hover:bg-muted/50 -mx-3 px-3 py-2 rounded"
+                    onClick={() => navigate(`/clients/${invoice.clientId}`)}
+                  >
+                    <p className="text-xs text-muted-foreground">View Client</p>
+                    <p className="text-sm font-medium text-blue-600 hover:underline">
+                      Client Details
+                    </p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Invoice Dates Card */}
+            {/* Totals Card */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Invoice Dates
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Summary</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Issue Date</p>
-                    <p className="text-sm font-medium">{formatDate(invoice.issueDate, 'MMM d, yyyy')}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Due Date</p>
-                    <p className={`text-sm font-medium ${invoice.isOverdue ? 'text-red-600' : ''}`}>
-                      {formatDate(invoice.dueDate, 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                  {invoice.paidDate && (
-                    <div className="col-span-2">
-                      <p className="text-xs text-muted-foreground">Paid Date</p>
-                      <p className="text-sm font-medium text-green-600">
-                        {formatDate(invoice.paidDate, 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Summary Card */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Receipt className="h-4 w-4" />
-                  Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal:</span>
-                  <span className="font-medium">{formatCurrency(invoice.subtotal)}</span>
+                  <span>{formatCurrency(invoice.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Tax ({invoice.taxRate}%):</span>
-                  <span className="font-medium">{formatCurrency(invoice.taxAmount)}</span>
+                  <span>{formatCurrency(invoice.taxAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Discount:</span>
-                  <span className="font-medium">-{formatCurrency(invoice.discountAmount)}</span>
+                  <span>-{formatCurrency(invoice.discountAmount)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-base font-bold">
@@ -376,12 +421,12 @@ export const InvoiceDetails: React.FC = () => {
                 </div>
                 <Separator />
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Amount Paid:</span>
-                  <span className="font-medium text-green-600">{formatCurrency(invoice.amountPaid)}</span>
+                  <span className="text-muted-foreground">Paid:</span>
+                  <span className="text-green-600">{formatCurrency(invoice.amountPaid)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Pending Balance:</span>
-                  <span className="font-bold text-orange-600">{formatCurrency(invoice.pendingBalance)}</span>
+                  <span className="text-muted-foreground">Pending:</span>
+                  <span className="text-orange-600 font-bold">{formatCurrency(invoice.pendingBalance)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -419,17 +464,7 @@ export const InvoiceDetails: React.FC = () => {
                 <div className="space-y-4">
                   {invoice.items.map((item, index) => (
                     <div key={item.id || index} className="border-b last:border-0 pb-4 last:pb-0">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1">
-                          <p className="font-medium">{item.description}</p>
-                          {item.notes && (
-                            <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>
-                          )}
-                        </div>
-                        <Badge variant="outline" className="ml-2">
-                          {item.itemType}
-                        </Badge>
-                      </div>
+                      <p className="font-medium">{item.description}</p>
                       <div className="grid grid-cols-4 gap-2 text-xs mt-2">
                         <div>
                           <p className="text-muted-foreground">Qty</p>
@@ -493,9 +528,6 @@ export const InvoiceDetails: React.FC = () => {
                             Ref: {payment.referenceNumber}
                           </p>
                         )}
-                        {payment.notes && (
-                          <p className="text-xs text-muted-foreground mt-1">{payment.notes}</p>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -506,339 +538,305 @@ export const InvoiceDetails: React.FC = () => {
         </Tabs>
       ) : (
         /* Desktop View */
-        <>
-          {/* Desktop Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-4 print:grid-cols-4">
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left Column - Client Info & Details */}
+          <div className="space-y-6 lg:col-span-1">
+            {/* Client Information */}
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Issue Date
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Client Information
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{formatDate(invoice.issueDate, 'MMM d')}</p>
-                <p className="text-xs text-muted-foreground">{formatDate(invoice.issueDate, 'yyyy')}</p>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="font-medium text-lg">{invoice.clientName}</p>
+                  {invoice.clientEmail && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                      <MailIcon className="h-4 w-4" />
+                      <a href={`mailto:${invoice.clientEmail}`} className="hover:underline">
+                        {invoice.clientEmail}
+                      </a>
+                    </div>
+                  )}
+                  {invoice.clientPhone && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                      <Phone className="h-4 w-4" />
+                      <a href={`tel:${invoice.clientPhone}`} className="hover:underline">
+                        {invoice.clientPhone}
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {invoice.projectName && (
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-muted-foreground mb-1">Project</p>
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-blue-600 hover:underline"
+                      onClick={() => navigate(`/projects/${invoice.projectId}`)}
+                    >
+                      {invoice.projectName}
+                    </Button>
+                  </div>
+                )}
+
+                {invoice.clientId && (
+                  <div className="pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => navigate(`/clients/${invoice.clientId}`)}
+                    >
+                      View Client Profile
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
+            {/* Invoice Details */}
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Due Date
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Receipt className="h-5 w-5" />
+                  Invoice Details
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className={`text-2xl font-bold ${invoice.isOverdue ? 'text-red-600' : ''}`}>
-                  {formatDate(invoice.dueDate, 'MMM d')}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {invoice.isOverdue ? `${invoice.daysOverdue} days overdue` : formatDate(invoice.dueDate, 'yyyy')}
-                </p>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Invoice Number</p>
+                    <p className="font-medium">{invoice.invoiceNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <Badge className={getStatusColor(invoice.status)}>
+                      {invoice.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Issue Date</p>
+                    <p className="font-medium">{formatDate(invoice.issueDate, 'PPP')}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Due Date</p>
+                    <p className={`font-medium ${invoice.isOverdue ? 'text-red-600' : ''}`}>
+                      {formatDate(invoice.dueDate, 'PPP')}
+                    </p>
+                  </div>
+                  {invoice.paidDate && (
+                    <div className="col-span-2">
+                      <p className="text-sm text-muted-foreground">Paid Date</p>
+                      <p className="font-medium text-green-600">{formatDate(invoice.paidDate, 'PPP')}</p>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Total Amount
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{formatCurrency(invoice.totalAmount)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {invoice.items.length} item{invoice.items.length !== 1 ? 's' : ''}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Pending Balance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-orange-600">{formatCurrency(invoice.pendingBalance)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {invoice.amountPaid > 0 ? `${formatCurrency(invoice.amountPaid)} paid` : 'No payments yet'}
-                </p>
-              </CardContent>
-            </Card>
+            {/* Notes & Terms */}
+            {(invoice.notes || invoice.termsAndConditions) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Additional Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {invoice.notes && (
+                    <div>
+                      <p className="text-sm font-medium mb-1">Notes</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{invoice.notes}</p>
+                    </div>
+                  )}
+                  {invoice.termsAndConditions && (
+                    <div>
+                      <p className="text-sm font-medium mb-1">Terms & Conditions</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{invoice.termsAndConditions}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
-          {/* Desktop Main Content Grid */}
-          <div className="grid gap-6 lg:grid-cols-3 print:grid-cols-3">
-            {/* Left Column - Client Info & Dates */}
-            <div className="space-y-6 lg:col-span-1">
-              {/* Client Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Client Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="font-medium text-lg">{invoice.clientName}</p>
-                    {invoice.clientEmail && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                        <MailIcon className="h-4 w-4" />
-                        <a href={`mailto:${invoice.clientEmail}`} className="hover:underline">
-                          {invoice.clientEmail}
-                        </a>
+          {/* Right Column - Items & Payments */}
+          <div className="space-y-6 lg:col-span-2">
+            {/* Invoice Items */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Invoice Items</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Unit Price</TableHead>
+                      <TableHead className="text-right">Discount</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invoice.items.map((item, index) => (
+                      <TableRow key={item.id || index}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{item.description}</p>
+                            {item.notes && (
+                              <p className="text-xs text-muted-foreground">{item.notes}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{item.itemType}</TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                        <TableCell className="text-right">
+                          {item.discountPercentage ? `${item.discountPercentage}%` : '-'}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(item.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {/* Totals */}
+                <div className="mt-6 border-t pt-4">
+                  <div className="flex justify-end">
+                    <div className="w-72 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Subtotal:</span>
+                        <span className="font-medium">{formatCurrency(invoice.subtotal)}</span>
                       </div>
-                    )}
-                    {invoice.clientPhone && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                        <Phone className="h-4 w-4" />
-                        <a href={`tel:${invoice.clientPhone}`} className="hover:underline">
-                          {invoice.clientPhone}
-                        </a>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Tax ({invoice.taxRate}%):</span>
+                        <span className="font-medium">{formatCurrency(invoice.taxAmount)}</span>
                       </div>
-                    )}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Discount:</span>
+                        <span className="font-medium">-{formatCurrency(invoice.discountAmount)}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between text-lg font-bold">
+                        <span>Total:</span>
+                        <span>{formatCurrency(invoice.totalAmount)}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Amount Paid:</span>
+                        <span className="font-medium text-green-600">{formatCurrency(invoice.amountPaid)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Pending Balance:</span>
+                        <span className="font-bold text-orange-600">{formatCurrency(invoice.pendingBalance)}</span>
+                      </div>
+                    </div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
 
-                  {invoice.clientAddress && (
-                    <div className="pt-4 border-t">
-                      <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4 mt-0.5" />
-                        <span>
-                          {invoice.clientAddress.street}<br />
-                          {invoice.clientAddress.city}, {invoice.clientAddress.state} {invoice.clientAddress.postalCode}<br />
-                          {invoice.clientAddress.country}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {invoice.projectName && (
-                    <div className="pt-4 border-t">
-                      <p className="text-sm text-muted-foreground mb-1">Project</p>
-                      <p className="font-medium">{invoice.projectName}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Invoice Details */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Receipt className="h-5 w-5" />
-                    Invoice Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Invoice Number</p>
-                      <p className="font-medium">{invoice.invoiceNumber}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Status</p>
-                      <Badge className={getStatusColor(invoice.status)}>
-                        {invoice.status.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Issue Date</p>
-                      <p className="font-medium">{formatDate(invoice.issueDate, 'PPP')}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Due Date</p>
-                      <p className={`font-medium ${invoice.isOverdue ? 'text-red-600' : ''}`}>
-                        {formatDate(invoice.dueDate, 'PPP')}
-                      </p>
-                    </div>
-                    {invoice.paidDate && (
-                      <div className="col-span-2">
-                        <p className="text-sm text-muted-foreground">Paid Date</p>
-                        <p className="font-medium text-green-600">{formatDate(invoice.paidDate, 'PPP')}</p>
-                      </div>
-                    )}
+            {/* Payment History */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Payment History
+                </CardTitle>
+                {canAddPayment && (
+                  <Button size="sm" onClick={() => setShowPaymentForm(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Record Payment
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {!invoice.payments || invoice.payments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No payments recorded yet</p>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Notes & Terms */}
-              {(invoice.notes || invoice.termsAndConditions) && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Additional Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {invoice.notes && (
-                      <div>
-                        <p className="text-sm font-medium mb-1">Notes</p>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{invoice.notes}</p>
-                      </div>
-                    )}
-                    {invoice.termsAndConditions && (
-                      <div>
-                        <p className="text-sm font-medium mb-1">Terms & Conditions</p>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{invoice.termsAndConditions}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            {/* Right Column - Items & Payments */}
-            <div className="space-y-6 lg:col-span-2">
-              {/* Invoice Items */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Invoice Items</CardTitle>
-                </CardHeader>
-                <CardContent>
+                ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Unit Price</TableHead>
-                        <TableHead className="text-right">Discount</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Method</TableHead>
+                        <TableHead>Reference</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {invoice.items.map((item, index) => (
-                        <TableRow key={item.id || index}>
+                      {invoice.payments.map((payment) => (
+                        <TableRow key={payment.id}>
+                          <TableCell>{formatDate(payment.paymentDate, 'MMM d, yyyy')}</TableCell>
                           <TableCell>
-                            <div>
-                              <p className="font-medium">{item.description}</p>
-                              {item.notes && (
-                                <p className="text-xs text-muted-foreground">{item.notes}</p>
-                              )}
-                            </div>
+                            <Badge variant="outline">
+                              {payment.paymentMethod.replace('_', ' ')}
+                            </Badge>
                           </TableCell>
-                          <TableCell>{item.itemType}</TableCell>
-                          <TableCell className="text-right">{item.quantity}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
-                          <TableCell className="text-right">
-                            {item.discountPercentage ? `${item.discountPercentage}%` : '-'}
-                          </TableCell>
+                          <TableCell>{payment.referenceNumber || '-'}</TableCell>
                           <TableCell className="text-right font-medium">
-                            {formatCurrency(item.amount)}
+                            {formatCurrency(payment.amount)}
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-
-                  {/* Totals Table */}
-                  <div className="mt-6 border-t pt-4">
-                    <div className="flex justify-end">
-                      <div className="w-72 space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Subtotal:</span>
-                          <span className="font-medium">{formatCurrency(invoice.subtotal)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Tax ({invoice.taxRate}%):</span>
-                          <span className="font-medium">{formatCurrency(invoice.taxAmount)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Discount:</span>
-                          <span className="font-medium">-{formatCurrency(invoice.discountAmount)}</span>
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between text-lg font-bold">
-                          <span>Total:</span>
-                          <span>{formatCurrency(invoice.totalAmount)}</span>
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Amount Paid:</span>
-                          <span className="font-medium text-green-600">{formatCurrency(invoice.amountPaid)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Pending Balance:</span>
-                          <span className="font-bold text-orange-600">{formatCurrency(invoice.pendingBalance)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Payment History */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <History className="h-5 w-5" />
-                    Payment History
-                  </CardTitle>
-                  {canAddPayment && (
-                    <Button size="sm" onClick={() => setShowPaymentForm(true)}>
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Record Payment
-                    </Button>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  {!invoice.payments || invoice.payments.length === 0 ? (
-                    <div className="text-center py-8">
-                      <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">No payments recorded yet</p>
-                      {canAddPayment && (
-                        <Button 
-                          variant="outline" 
-                          className="mt-4"
-                          onClick={() => setShowPaymentForm(true)}
-                        >
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Record First Payment
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Method</TableHead>
-                          <TableHead>Reference</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead>Notes</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {invoice.payments.map((payment) => (
-                          <TableRow key={payment.id}>
-                            <TableCell>{formatDate(payment.paymentDate, 'MMM d, yyyy')}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">
-                                {payment.paymentMethod.replace('_', ' ')}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{payment.referenceNumber || '-'}</TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(payment.amount)}
-                            </TableCell>
-                            <TableCell className="max-w-[200px]">
-                              <p className="text-sm text-muted-foreground truncate" title={payment.notes}>
-                                {payment.notes || '-'}
-                              </p>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        </>
+        </div>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[900px] p-0 sm:p-6">
+          <DialogHeader className="p-4 sm:p-0 border-b sm:border-0">
+            <DialogTitle>Edit Invoice</DialogTitle>
+            <DialogDescription>
+              Make changes to invoice {invoice.invoiceNumber}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[calc(90vh-8rem)] overflow-y-auto px-4 pb-4 sm:px-0 sm:pb-0">
+            <InvoiceForm
+              initialData={{
+                ...invoice,
+                issueDate: invoice.issueDate.split('T')[0],
+                dueDate: invoice.dueDate.split('T')[0],
+              }}
+              onSubmit={handleUpdate}
+              onCancel={() => setShowEditDialog(false)}
+              clientId={invoice.clientId}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete invoice {invoice.invoiceNumber}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Payment Form Dialog */}
       <Dialog open={showPaymentForm} onOpenChange={setShowPaymentForm}>
@@ -856,20 +854,6 @@ export const InvoiceDetails: React.FC = () => {
           />
         </DialogContent>
       </Dialog>
-
-      {/* Print Styles */}
-      <style type="text/css" media="print">{`
-        @page {
-          size: A4;
-          margin: 2cm;
-        }
-        .print\\:hidden {
-          display: none !important;
-        }
-        .print\\:space-y-4 {
-          margin-top: 1rem;
-        }
-      `}</style>
     </div>
   );
 };

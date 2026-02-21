@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '@/services/project.service';
 import { useUIStore } from '@/store/uiStore';
-import { ProjectCreateRequest, ProjectUpdateRequest, MilestoneCreateRequest, ProjectStatus, Project, Invoice } from '@/types';
+import { ProjectCreateRequest, ProjectUpdateRequest, MilestoneCreateRequest, ProjectStatus, Project, Invoice, Subscription, ProjectMilestone } from '@/types';
 
 export const useProjects = (filters?: {
   status?: ProjectStatus;
@@ -113,7 +113,7 @@ export const useProjects = (filters?: {
   };
 };
 
-export const useProjectMilestones = (projectId: string) => {
+export const useProjectMilestonesI = (projectId: string) => {
   const queryClient = useQueryClient();
   const { addNotification } = useUIStore();
 
@@ -171,6 +171,21 @@ export const useProject = (id: string) => {
   return { project, isLoading, error };
 };
 
+export const useProjectInvoicesI = (projectId: string) => {
+  const {
+    data: invoices = [],
+    isLoading,
+    error
+  } = useQuery<Invoice[]>({
+    queryKey: ['project-invoices', projectId],
+    queryFn: () => projectService.getProjectInvoices(projectId),
+    enabled: !!projectId
+  });
+
+  return { invoices, isLoading, error };
+};
+
+// src/hooks/useProjects.ts - Add these hooks
 export const useProjectInvoices = (projectId: string) => {
   const {
     data: invoices = [],
@@ -183,4 +198,85 @@ export const useProjectInvoices = (projectId: string) => {
   });
 
   return { invoices, isLoading, error };
+};
+
+export const useProjectSubscriptions = (projectId: string) => {
+  const {
+    data: subscriptions = [],
+    isLoading,
+    error
+  } = useQuery<Subscription[]>({
+    queryKey: ['project-subscriptions', projectId],
+    queryFn: () => projectService.getProjectSubscriptions(projectId),
+    enabled: !!projectId
+  });
+
+  return { subscriptions, isLoading, error };
+};
+
+export const useProjectMilestones = (projectId: string) => {
+  const queryClient = useQueryClient();
+  const { addNotification } = useUIStore();
+
+  const {
+    data: milestones = [],
+    isLoading,
+    error,
+    refetch
+  } = useQuery<ProjectMilestone[]>({
+    queryKey: ['project-milestones', projectId],
+    queryFn: () => projectService.getProjectMilestones(projectId),
+    enabled: !!projectId
+  });
+
+  const addMilestone = useMutation({
+    mutationFn: (data: MilestoneCreateRequest) =>
+      projectService.addProjectMilestone(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-milestones', projectId] });
+      addNotification({
+        type: 'success',
+        message: 'Milestone added successfully',
+        duration: 3000
+      });
+    },
+    onError: (error: any) => {
+      addNotification({
+        type: 'error',
+        message: error.message || 'Failed to add milestone',
+        duration: 5000
+      });
+    }
+  });
+
+  const updateMilestone = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<ProjectMilestone> }) =>
+      projectService.updateMilestone(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-milestones', projectId] });
+      addNotification({
+        type: 'success',
+        message: 'Milestone updated successfully',
+        duration: 3000
+      });
+    },
+    onError: (error: any) => {
+      addNotification({
+        type: 'error',
+        message: error.message || 'Failed to update milestone',
+        duration: 5000
+      });
+    }
+  });
+
+  return {
+    milestones,
+    isLoading,
+    error,
+    refetch,
+    addMilestone: addMilestone.mutate,
+    updateMilestone: updateMilestone.mutate,
+    isAdding: addMilestone.isPending,
+    isUpdating: updateMilestone.isPending
+  };
 };

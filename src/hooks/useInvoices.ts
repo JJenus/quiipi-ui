@@ -156,3 +156,4 @@ export const useInvoice = (id: string) => {
 
   return { invoice, isLoading, error };
 };
+

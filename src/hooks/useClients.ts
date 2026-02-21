@@ -1,7 +1,8 @@
+// src/hooks/useClients.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientService } from '@/services/client.service';
 import { useUIStore } from '@/store/uiStore';
-import { ClientCreateRequest, ClientUpdateRequest, ClientFilters } from '@/types';
+import { ClientCreateRequest, ClientUpdateRequest, ClientFilters, Invoice } from '@/types';
 
 export const useClients = (filters?: ClientFilters) => {
   const queryClient = useQueryClient();
@@ -101,4 +102,61 @@ export const useClient = (id: string) => {
   });
 
   return { client, isLoading, error };
+};
+
+// export const useClientInvoices = (id: string) => {
+//   const {
+//     data: invoices = [],
+//     isLoading,
+//     error
+//   } = useQuery<Invoice[]>({
+//     queryKey: ['client-invoices', id],
+//     queryFn: () => clientService.getClientInvoices(id),
+//     enabled: !!id
+//   });
+
+//   return { invoices, isLoading, error };
+// };
+
+// src/hooks/useClients.ts - Add these hooks if they don't exist
+export const useClientProjects = (clientId: string) => {
+  const {
+    data: projects = [],
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['client-projects', clientId],
+    queryFn: () => clientService.getClientProjects(clientId),
+    enabled: !!clientId
+  });
+
+  return { projects, isLoading, error };
+};
+
+export const useClientInvoices = (clientId: string) => {
+  const {
+    data: invoices = [],
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['client-invoices', clientId],
+    queryFn: () => clientService.getClientInvoices(clientId),
+    enabled: !!clientId
+  });
+
+  return { invoices, isLoading, error };
+};
+
+export const useClientSubscriptions = (clientId: string) => {
+  const {
+    data: subscriptions = [],
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['client-subscriptions', clientId],
+    queryFn: () => clientService.getClientSubscriptions(clientId),
+    enabled: !!clientId
+  });
+
+  return { subscriptions, isLoading, error };
 };

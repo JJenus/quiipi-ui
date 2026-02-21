@@ -1,43 +1,55 @@
-// src/pages/ProjectDetails.tsx (enhanced)
+// src/pages/ProjectDetails.tsx
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useProject, useProjectInvoices } from '@/hooks/useProjects';
-import { useProjectSubscriptions } from '@/hooks/useProjectSubscriptions';
-// import { useProjectInvoices } from '@/hooks/useProjectInvoices'; // Add this hook
+import { useProject, useProjects } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  DollarSign, 
-  Github, 
-  Globe, 
-  Server,
-  FileText,
-  Clock,
-  AlertCircle
-} from 'lucide-react';
-import { formatDate, formatCurrency, getDaysUntil } from '@/utils/dateUtils';
-import { ProjectStatus } from '@/types';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/responsive-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ProjectForm } from '@/components/projects/ProjectForm';
+import { ArrowLeft, Edit, Trash2, Calendar, DollarSign, Github, Globe, FolderKanban } from 'lucide-react';
+import { formatDate, formatCurrency, getDaysUntil } from '@/utils/dateUtils';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ProjectStatus, ProjectPriority } from '@/types';
 
 export const ProjectDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { project, isLoading: projectLoading } = useProject(id!);
-  const { subscriptions, isLoading: subsLoading } = useProjectSubscriptions(id!);
-  const { invoices, isLoading: invoicesLoading } = useProjectInvoices(id!);
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const { project, isLoading } = useProject(id!);
+  const { updateProject, deleteProject } = useProjects();
+
+  const handleUpdate = async (data: any) => {
+    await updateProject({ id: id!, data });
+    setShowEditDialog(false);
+  };
+
+  const handleDelete = async () => {
+    await deleteProject(id!);
+    setShowDeleteDialog(false);
+    navigate('/projects');
+  };
 
   const getStatusColor = (status: ProjectStatus) => {
     const colors = {
@@ -50,40 +62,28 @@ export const ProjectDetails: React.FC = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: ProjectPriority) => {
     const colors = {
-      LOW: 'bg-gray-100 text-gray-800',
-      MEDIUM: 'bg-blue-100 text-blue-800',
-      HIGH: 'bg-orange-100 text-orange-800',
-      CRITICAL: 'bg-red-100 text-red-800'
+      [ProjectPriority.LOW]: 'bg-gray-100 text-gray-800',
+      [ProjectPriority.MEDIUM]: 'bg-blue-100 text-blue-800',
+      [ProjectPriority.HIGH]: 'bg-orange-100 text-orange-800',
+      [ProjectPriority.CRITICAL]: 'bg-red-100 text-red-800'
     };
     return colors[priority] || 'bg-gray-100 text-gray-800';
   };
 
-  const getInvoiceStatusColor = (status: string) => {
-    const colors = {
-      PAID: 'bg-green-100 text-green-800',
-      PARTIALLY_PAID: 'bg-yellow-100 text-yellow-800',
-      OVERDUE: 'bg-red-100 text-red-800',
-      SENT: 'bg-blue-100 text-blue-800',
-      DRAFT: 'bg-gray-100 text-gray-800'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
-
-  if (projectLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
           <Skeleton className="h-10 w-10" />
-          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-8 w-48" />
         </div>
         <div className="grid gap-4 md:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Skeleton key={i} className="h-32" />
           ))}
         </div>
-        <Skeleton className="h-96" />
       </div>
     );
   }
@@ -91,8 +91,12 @@ export const ProjectDetails: React.FC = () => {
   if (!project) {
     return (
       <div className="text-center py-12">
+        <FolderKanban className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
         <h2 className="text-2xl font-bold">Project not found</h2>
-        <Button onClick={() => navigate('/projects')} className="mt-4">
+        <p className="text-muted-foreground mt-2 mb-4">
+          The project you're looking for doesn't exist or has been deleted.
+        </p>
+        <Button onClick={() => navigate('/projects')}>
           Back to Projects
         </Button>
       </div>
@@ -100,11 +104,8 @@ export const ProjectDetails: React.FC = () => {
   }
 
   const daysUntil = getDaysUntil(project.deadline);
-  const budgetUsed = project.estimatedBudget > 0 
-    ? (project.actualCost / project.estimatedBudget) * 100 
-    : 0;
-  const isNearDeadline = daysUntil <= 7 && daysUntil > 0;
   const isOverdue = daysUntil < 0;
+  const isNearDeadline = daysUntil <= 7 && daysUntil > 0;
 
   return (
     <div className="space-y-6">
@@ -115,34 +116,51 @@ export const ProjectDetails: React.FC = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">{project.name}</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold">{project.name}</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Client: {project.client?.companyName || 'No client assigned'}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Badge className={getStatusColor(project.status)}>
-            {project.status}
-          </Badge>
-          <Badge className={getPriorityColor(project.priority)}>
-            {project.priority} Priority
-          </Badge>
-          {isOverdue && (
-            <Badge variant="destructive" className="animate-pulse">
-              Overdue
-            </Badge>
-          )}
-          {isNearDeadline && !isOverdue && (
-            <Badge variant="destructive" className="animate-pulse">
-              {daysUntil} days left
-            </Badge>
-          )}
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowEditDialog(true)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+          <Button 
+            variant="outline" 
+            className="text-red-600 hover:text-red-700 hover:bg-red-100"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </Button>
         </div>
       </div>
 
-      {/* Stats Cards - Enhanced */}
+      {/* Status Badges */}
+      <div className="flex flex-wrap gap-2">
+        <Badge className={getStatusColor(project.status)}>
+          {project.status}
+        </Badge>
+        <Badge className={getPriorityColor(project.priority)}>
+          {project.priority} Priority
+        </Badge>
+        {isOverdue && (
+          <Badge variant="destructive">
+            Overdue by {Math.abs(daysUntil)} days
+          </Badge>
+        )}
+        {isNearDeadline && !isOverdue && (
+          <Badge variant="destructive" className="animate-pulse">
+            {daysUntil} days left
+          </Badge>
+        )}
+      </div>
+
+      {/* Stats Cards */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
@@ -154,15 +172,6 @@ export const ProjectDetails: React.FC = () => {
           <CardContent>
             <p className="text-sm">
               {formatDate(project.startDate, 'MMM d')} - {formatDate(project.deadline, 'MMM d, yyyy')}
-            </p>
-            <p className={`text-xs mt-1 ${
-              isOverdue ? 'text-red-600' : 
-              isNearDeadline ? 'text-orange-600' : 
-              'text-muted-foreground'
-            }`}>
-              {isOverdue ? `${Math.abs(daysUntil)} days overdue` : 
-               isNearDeadline ? `${daysUntil} days remaining` : 
-               `${daysUntil} days until deadline`}
             </p>
           </CardContent>
         </Card>
@@ -176,291 +185,293 @@ export const ProjectDetails: React.FC = () => {
           </CardHeader>
           <CardContent>
             <p className="text-lg font-bold">
-              {formatCurrency(project.actualCost)}
+              {formatCurrency(project.estimatedBudget || 0)}
             </p>
             <p className="text-xs text-muted-foreground">
-              of {formatCurrency(project.estimatedBudget)} ({budgetUsed.toFixed(1)}%)
-            </p>
-            {project.estimatedBudget > 0 && (
-              <Progress value={budgetUsed} className="mt-2" />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Pending Balance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-lg font-bold text-orange-600">
-              {formatCurrency(project.pendingBalance)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Outstanding invoices
+              Spent: {formatCurrency(project.actualCost || 0)}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              Hourly Rate
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Hourly Rate</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-lg font-bold">
-              {formatCurrency(project.hourlyRate)}/hr
+              {formatCurrency(project.hourlyRate || 0)}/hr
             </p>
-            <p className="text-xs text-muted-foreground">
-              Billable rate
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Pending Balance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-lg font-bold text-orange-600">
+              {formatCurrency(project.pendingBalance || 0)}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="subscriptions">
-            Subscriptions
-            {subscriptions.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {subscriptions.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="invoices">
-            Invoices
-            {invoices.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {invoices.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="milestones">Milestones</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          {/* Description */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Description</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {project.description || 'No description provided'}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Links */}
-          {(project.repositoryUrl || project.stagingUrl || project.productionUrl) && (
+      {/* Main Content */}
+      {!isMobile ? (
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Left Column */}
+          <div className="space-y-6">
+            {/* Description Card */}
             <Card>
               <CardHeader>
-                <CardTitle>Project Links</CardTitle>
+                <CardTitle>Description</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {project.repositoryUrl && (
-                  <div className="flex items-center gap-2">
-                    <Github className="h-4 w-4" />
+              <CardContent>
+                <p className="text-sm whitespace-pre-wrap">
+                  {project.description || 'No description provided.'}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Links Card */}
+            {(project.repositoryUrl || project.stagingUrl || project.productionUrl) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Links</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {project.repositoryUrl && (
                     <a 
                       href={project.repositoryUrl} 
                       target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-sm text-blue-600 hover:underline"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
                     >
+                      <Github className="h-4 w-4" />
                       Repository
                     </a>
-                  </div>
-                )}
-                {project.stagingUrl && (
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
+                  )}
+                  {project.stagingUrl && (
                     <a 
                       href={project.stagingUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline"
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
                     >
+                      <Globe className="h-4 w-4" />
                       Staging Site
                     </a>
-                  </div>
-                )}
-                {project.productionUrl && (
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
+                  )}
+                  {project.productionUrl && (
                     <a 
                       href={project.productionUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline"
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
                     >
+                      <Globe className="h-4 w-4" />
                       Production Site
                     </a>
-                  </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Client Info Card */}
+            {project.client && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Client Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <p className="font-medium">{project.client.companyName}</p>
+                  <p className="text-sm text-muted-foreground">{project.client.email}</p>
+                  <p className="text-sm text-muted-foreground">{project.client.phone}</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => navigate(`/clients/${project.client!.id}`)}
+                  >
+                    View Client
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Metadata Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Created:</span>
+                  <span className="text-sm">{formatDate(project.createdAt, 'MMM d, yyyy')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Last Updated:</span>
+                  <span className="text-sm">{formatDate(project.updatedAt, 'MMM d, yyyy')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Project ID:</span>
+                  <span className="text-sm font-mono">{project.id}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      ) : (
+        /* Mobile Tabs */
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="links">Links</TabsTrigger>
+            <TabsTrigger value="details">Details</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Description</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm whitespace-pre-wrap">
+                  {project.description || 'No description provided.'}
+                </p>
+              </CardContent>
+            </Card>
+
+            {project.client && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Client</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="font-medium">{project.client.companyName}</p>
+                  <Button 
+                    variant="link" 
+                    className="px-0 h-auto text-sm"
+                    onClick={() => navigate(`/clients/${project.client!.id}`)}
+                  >
+                    View Client Details
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="links" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Project Links</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {project.repositoryUrl && (
+                  <a 
+                    href={project.repositoryUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                  >
+                    <Github className="h-4 w-4" />
+                    Repository
+                  </a>
+                )}
+                {project.stagingUrl && (
+                  <a 
+                    href={project.stagingUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                  >
+                    <Globe className="h-4 w-4" />
+                    Staging Site
+                  </a>
+                )}
+                {project.productionUrl && (
+                  <a 
+                    href={project.productionUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                  >
+                    <Globe className="h-4 w-4" />
+                    Production Site
+                  </a>
+                )}
+                {!project.repositoryUrl && !project.stagingUrl && !project.productionUrl && (
+                  <p className="text-sm text-muted-foreground">No links provided.</p>
                 )}
               </CardContent>
             </Card>
-          )}
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="subscriptions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Subscriptions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {subsLoading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
+          <TabsContent value="details" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Additional Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Created:</span>
+                  <span className="text-sm">{formatDate(project.createdAt, 'MMM d, yyyy')}</span>
                 </div>
-              ) : subscriptions.length === 0 ? (
-                <div className="text-center py-8">
-                  <Server className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No subscriptions for this project</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => navigate('/subscriptions/new', { state: { projectId: id } })}
-                  >
-                    Add Subscription
-                  </Button>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Last Updated:</span>
+                  <span className="text-sm">{formatDate(project.updatedAt, 'MMM d, yyyy')}</span>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {subscriptions.map((sub) => {
-                    const daysUntil = getDaysUntil(sub.expiryDate);
-                    const isExpiring = daysUntil <= 30 && daysUntil > 0;
-                    
-                    return (
-                      <div 
-                        key={sub.id} 
-                        className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => navigate(`/subscriptions/${sub.id}`)}
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <Server className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">{sub.name}</p>
-                            <p className="text-sm text-muted-foreground">{sub.provider}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className="font-medium">{formatCurrency(sub.cost, sub.currency)}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {sub.billingCycle.toLowerCase()}
-                            </p>
-                          </div>
-                          
-                          <div className="text-right min-w-[100px]">
-                            <p className={`text-sm ${isExpiring ? 'text-orange-600' : 'text-muted-foreground'}`}>
-                              {formatDate(sub.expiryDate, 'MMM d, yyyy')}
-                            </p>
-                            {isExpiring && (
-                              <Badge variant="destructive" className="mt-1">
-                                {daysUntil} days left
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Project ID:</span>
+                  <span className="text-sm font-mono">{project.id}</span>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
 
-        <TabsContent value="invoices">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Invoices</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {invoicesLoading ? (
-                <Skeleton className="h-32 w-full" />
-              ) : invoices.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No invoices for this project</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => navigate('/invoices/new', { state: { projectId: id } })}
-                  >
-                    Create Invoice
-                  </Button>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Invoice #</TableHead>
-                      <TableHead>Issue Date</TableHead>
-                      <TableHead>Due Date</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Pending</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {invoices.map((invoice) => (
-                      <TableRow 
-                        key={invoice.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => navigate(`/invoices/${invoice.id}`)}
-                      >
-                        <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
-                        <TableCell>{formatDate(invoice.issueDate, 'MMM d, yyyy')}</TableCell>
-                        <TableCell>
-                          <span className={invoice.isOverdue ? 'text-red-600' : ''}>
-                            {formatDate(invoice.dueDate, 'MMM d, yyyy')}
-                          </span>
-                        </TableCell>
-                        <TableCell>{formatCurrency(invoice.totalAmount)}</TableCell>
-                        <TableCell>
-                          {invoice.pendingBalance > 0 ? (
-                            <span className="text-orange-600 font-medium">
-                              {formatCurrency(invoice.pendingBalance)}
-                            </span>
-                          ) : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getInvoiceStatusColor(invoice.status)}>
-                            {invoice.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[600px] p-0 sm:p-6">
+          <DialogHeader className="p-4 sm:p-0 border-b sm:border-0">
+            <DialogTitle>Edit Project</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[calc(90vh-8rem)] overflow-y-auto px-4 pb-4 sm:px-0 sm:pb-0">
+            <ProjectForm
+              initialData={{
+                ...project,
+                startDate: project.startDate,
+                deadline: project.deadline,
+              }}
+              onSubmit={handleUpdate}
+              onCancel={() => setShowEditDialog(false)}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
-        <TabsContent value="milestones">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Milestones</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Milestones feature coming soon...</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Delete Confirmation */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{project.name}"? This action cannot be undone.
+              This will also delete all associated invoices and subscriptions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
