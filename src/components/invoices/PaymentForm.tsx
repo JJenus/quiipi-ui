@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CreditCard, Landmark, Wallet, DollarSign } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
 
 const paymentSchema = z.object({
   amount: z.number()
@@ -347,12 +348,4 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
       </div>
     </form>
   );
-};
-
-// Helper function for formatting currency (if not already imported)
-const formatCurrency = (amount: number, currency: string = 'USD'): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-  }).format(amount);
 };
