@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +34,6 @@ import {
 } from 'lucide-react';
 import { formatDate, formatCurrency, getDaysUntil, getExpiryStatus } from '@/utils/dateUtils';
 import { SubscriptionForm } from '@/components/subscriptions/SubscriptionForm';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,13 +45,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SubscriptionType, SubscriptionStatus } from '@/types';
 
 export const SubscriptionDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery("(max-width: 768px)");
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRenewDialog, setShowRenewDialog] = useState(false);
