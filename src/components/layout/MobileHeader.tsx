@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export const MobileHeader: React.FC = () => {
   const { sidebarOpen, toggleSidebar } = useUIStore();
@@ -33,6 +34,8 @@ export const MobileHeader: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-2">
+        <NotificationBell />
+        
         <Button variant="ghost" size="icon" onClick={toggleTheme}>
           {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
         </Button>
@@ -59,6 +62,9 @@ export const MobileHeader: React.FC = () => {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/profile')}>
+              <span>Profile</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/settings')}>
               <span>Settings</span>
             </DropdownMenuItem>

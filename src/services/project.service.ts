@@ -41,7 +41,7 @@ class ProjectService {
   }
 
   async updateProjectStatus(id: string, status: ProjectStatus): Promise<Project> {
-    return apiService.patch<Project>(`${this.baseUrl}/${id}/status`, { status });
+    return apiService.patch<Project>(`${this.baseUrl}/${id}`, { status });
   }
 
   async getProjectSubscriptions(id: string): Promise<Subscription[]> {

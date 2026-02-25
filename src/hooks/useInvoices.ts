@@ -39,8 +39,9 @@ export const useInvoices = (filters?: InvoiceFilters) => {
   const updateInvoice = useMutation({
     mutationFn: ({ id, data }: { id: string; data: InvoiceUpdateRequest }) =>
       invoiceService.updateInvoice(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', variables.id] });
       addNotification({
         type: 'success',
         message: 'Invoice updated successfully',
@@ -78,8 +79,9 @@ export const useInvoices = (filters?: InvoiceFilters) => {
   const addPayment = useMutation({
     mutationFn: ({ id, data }: { id: string; data: InvoicePaymentRequest }) =>
       invoiceService.addPayment(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', variables.id] });
       addNotification({
         type: 'success',
         message: 'Payment added successfully',
@@ -97,7 +99,9 @@ export const useInvoices = (filters?: InvoiceFilters) => {
 
   const sendInvoice = useMutation({
     mutationFn: (id: string) => invoiceService.sendInvoice(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', id] });
       addNotification({
         type: 'success',
         message: 'Invoice sent successfully',
@@ -147,13 +151,13 @@ export const useInvoice = (id: string) => {
   const {
     data: invoice,
     isLoading,
-    error
+    error,
+    refetch
   } = useQuery<Invoice>({
-    queryKey: ['project', id],
+    queryKey: ['invoice', id],
     queryFn: () => invoiceService.getInvoice(id),
     enabled: !!id
   });
 
-  return { invoice, isLoading, error };
+  return { invoice, isLoading, error, refetch };
 };
-

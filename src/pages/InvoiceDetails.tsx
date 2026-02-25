@@ -56,7 +56,7 @@ import {
 	PlusCircle,
 	History,
 } from "lucide-react";
-import { formatDate, formatCurrency } from "@/utils/dateUtils";
+import { formatDate, formatCurrency, formatDateTimeForAPI } from "@/utils/dateUtils";
 import { PaymentForm } from "@/components/invoices/PaymentForm";
 import { InvoiceForm } from "@/components/invoices/InvoiceForm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -144,8 +144,9 @@ export const InvoiceDetails: React.FC = () => {
 
 	const handleMarkAsPaid = async () => {
 		const paymentData = {
+		  invoiceId: id!,
 			amount: invoice?.pendingBalance,
-			paymentDate: new Date().toISOString().split("T")[0],
+			paymentDate: formatDateTimeForAPI(new Date().toISOString()),
 			paymentMethod: PaymentMethod.BANK_TRANSFER,
 			notes: "Marked as paid manually",
 		};

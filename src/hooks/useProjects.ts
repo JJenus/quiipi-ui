@@ -42,8 +42,9 @@ export const useProjects = (filters?: {
   const updateProject = useMutation({
     mutationFn: ({ id, data }: { id: string; data: ProjectUpdateRequest }) =>
       projectService.updateProject(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project', variables.id] });
       addNotification({
         type: 'success',
         message: 'Project updated successfully',
@@ -61,8 +62,9 @@ export const useProjects = (filters?: {
 
   const deleteProject = useMutation({
     mutationFn: (id: string) => projectService.deleteProject(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.removeQueries({ queryKey: ['project', id] }); // Remove from cache since it's deleted
       addNotification({
         type: 'success',
         message: 'Project deleted successfully',
@@ -81,8 +83,9 @@ export const useProjects = (filters?: {
   const updateProjectStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: ProjectStatus }) =>
       projectService.updateProjectStatus(id, status),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project', variables.id] }); // ✅ FIXED: Invalidate single project
       addNotification({
         type: 'success',
         message: 'Project status updated successfully',
@@ -132,6 +135,7 @@ export const useProjectMilestonesI = (projectId: string) => {
       projectService.addProjectMilestone(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['milestones', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] }); // ✅ Also invalidate project for stats
       addNotification({
         type: 'success',
         message: 'Milestone added successfully',
@@ -156,33 +160,19 @@ export const useProjectMilestonesI = (projectId: string) => {
   };
 };
 
-
 export const useProject = (id: string) => {
   const {
     data: project,
     isLoading,
-    error
+    error,
+    refetch
   } = useQuery<Project>({
     queryKey: ['project', id],
     queryFn: () => projectService.getProject(id),
     enabled: !!id
   });
 
-  return { project, isLoading, error };
-};
-
-export const useProjectInvoicesI = (projectId: string) => {
-  const {
-    data: invoices = [],
-    isLoading,
-    error
-  } = useQuery<Invoice[]>({
-    queryKey: ['project-invoices', projectId],
-    queryFn: () => projectService.getProjectInvoices(projectId),
-    enabled: !!projectId
-  });
-
-  return { invoices, isLoading, error };
+  return { project, isLoading, error, refetch };
 };
 
 // src/hooks/useProjects.ts - Add these hooks
@@ -190,28 +180,30 @@ export const useProjectInvoices = (projectId: string) => {
   const {
     data: invoices = [],
     isLoading,
-    error
+    error,
+    refetch
   } = useQuery<Invoice[]>({
     queryKey: ['project-invoices', projectId],
     queryFn: () => projectService.getProjectInvoices(projectId),
     enabled: !!projectId
   });
 
-  return { invoices, isLoading, error };
+  return { invoices, isLoading, error, refetch };
 };
 
 export const useProjectSubscriptions = (projectId: string) => {
   const {
     data: subscriptions = [],
     isLoading,
-    error
+    error,
+    refetch
   } = useQuery<Subscription[]>({
     queryKey: ['project-subscriptions', projectId],
     queryFn: () => projectService.getProjectSubscriptions(projectId),
     enabled: !!projectId
   });
 
-  return { subscriptions, isLoading, error };
+  return { subscriptions, isLoading, error, refetch };
 };
 
 export const useProjectMilestones = (projectId: string) => {
@@ -234,6 +226,7 @@ export const useProjectMilestones = (projectId: string) => {
       projectService.addProjectMilestone(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-milestones', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] }); // ✅ Update project stats
       addNotification({
         type: 'success',
         message: 'Milestone added successfully',
@@ -252,8 +245,9 @@ export const useProjectMilestones = (projectId: string) => {
   const updateMilestone = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<ProjectMilestone> }) =>
       projectService.updateMilestone(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['project-milestones', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] }); // ✅ Update project stats
       addNotification({
         type: 'success',
         message: 'Milestone updated successfully',

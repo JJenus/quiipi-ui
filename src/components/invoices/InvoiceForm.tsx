@@ -6,10 +6,24 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { StepperTabs } from '@/components/ui/stepper-tabs';
 import { InvoiceCreateRequest } from '@/types';
 import { useClients } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
-import { Trash2, Plus, Calculator } from 'lucide-react';
+import { 
+  Trash2, 
+  Plus, 
+  Calculator,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  Users,
+  Calendar,
+  FileText,
+  Receipt,
+  DollarSign,
+  Building2
+} from 'lucide-react';
 import { formatDateForAPI } from '@/utils/dateUtils';
 import {
   Select,
@@ -53,12 +67,46 @@ interface InvoiceFormProps {
   clientId?: string;
 }
 
+const steps = [
+  { 
+    id: 'client', 
+    title: 'Client', 
+    icon: Building2,
+    description: 'Select client and project'
+  },
+  { 
+    id: 'dates', 
+    title: 'Dates', 
+    icon: Calendar,
+    description: 'Set issue and due dates'
+  },
+  { 
+    id: 'items', 
+    title: 'Items', 
+    icon: Receipt,
+    description: 'Add invoice line items'
+  },
+  { 
+    id: 'totals', 
+    title: 'Totals', 
+    icon: DollarSign,
+    description: 'Tax, discounts and review'
+  },
+  { 
+    id: 'notes', 
+    title: 'Notes', 
+    icon: FileText,
+    description: 'Additional information'
+  },
+];
+
 export const InvoiceForm: React.FC<InvoiceFormProps> = ({
   onSubmit,
   onCancel,
   initialData,
   clientId: presetClientId,
 }) => {
+  const [currentStep, setCurrentStep] = useState(0);
   const { clients } = useClients();
   const [selectedClient, setSelectedClient] = useState<string>(presetClientId || '');
   const { projects } = useProjects({ clientId: selectedClient });
@@ -69,6 +117,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
     handleSubmit,
     watch,
     setValue,
+    trigger,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
@@ -111,6 +161,45 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
     }
   }, [presetClientId, setValue]);
 
+  const handleNext = async () => {
+    let fieldsToValidate: string[] = [];
+    
+    switch (currentStep) {
+      case 0: // Client
+        fieldsToValidate = ['clientId', 'projectId'];
+        break;
+      case 1: // Dates
+        fieldsToValidate = ['issueDate', 'dueDate'];
+        break;
+      case 2: // Items
+        // Validate all items have required fields
+        const itemFields: string[] = [];
+        items.forEach((_, index) => {
+          itemFields.push(`items.${index}.description`);
+          itemFields.push(`items.${index}.quantity`);
+          itemFields.push(`items.${index}.unitPrice`);
+        });
+        fieldsToValidate = itemFields;
+        break;
+      case 3: // Totals
+        fieldsToValidate = ['taxRate', 'discountAmount'];
+        break;
+      case 4: // Notes
+        fieldsToValidate = ['notes', 'termsAndConditions'];
+        break;
+    }
+
+    const isValid = fieldsToValidate.length ? await trigger(fieldsToValidate as any) : true;
+    
+    if (isValid) {
+      setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+    }
+  };
+
+  const handlePrevious = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
+
   const handleFormSubmit = async (data: InvoiceFormData) => {
     const formattedData: InvoiceCreateRequest = {
       ...data,
@@ -128,16 +217,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
     await onSubmit(formattedData);
   };
 
-  return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-2 pb-2 border-b">
-        <Calculator className="h-5 w-5 text-muted-foreground" />
-        <h2 className="text-lg font-semibold">Invoice Details</h2>
-      </div>
-
-      {/* Client and Dates */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  const stepContents = [
+    // Step 0: Client Information
+    (
+      <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="clientId">Client *</Label>
           <Select
@@ -185,36 +268,102 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="issueDate">Issue Date *</Label>
-          <Input
-            id="issueDate"
-            type="date"
-            {...register('issueDate')}
-            className="w-full"
-            max={new Date().toISOString().split('T')[0]}
-          />
-          {errors.issueDate && (
-            <p className="text-sm text-red-500">{errors.issueDate.message}</p>
-          )}
+        {/* Client Summary */}
+        {selectedClient && (
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Client Summary
+            </h4>
+            <div className="text-sm space-y-1">
+              <p>
+                <span className="text-muted-foreground">Company:</span>{' '}
+                {clients?.find(c => c.id === selectedClient)?.companyName}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Contact:</span>{' '}
+                {clients?.find(c => c.id === selectedClient)?.contactPerson}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Projects:</span>{' '}
+                {projects?.length || 0} active
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    ),
+
+    // Step 1: Dates
+    (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="issueDate">Issue Date *</Label>
+            <Input
+              id="issueDate"
+              type="date"
+              {...register('issueDate')}
+              className="w-full"
+              max={new Date().toISOString().split('T')[0]}
+            />
+            {errors.issueDate && (
+              <p className="text-sm text-red-500">{errors.issueDate.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="dueDate">Due Date *</Label>
+            <Input
+              id="dueDate"
+              type="date"
+              {...register('dueDate')}
+              className="w-full"
+              min={watch('issueDate')}
+            />
+            {errors.dueDate && (
+              <p className="text-sm text-red-500">{errors.dueDate.message}</p>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="dueDate">Due Date *</Label>
-          <Input
-            id="dueDate"
-            type="date"
-            {...register('dueDate')}
-            className="w-full"
-            min={watch('issueDate')}
-          />
-          {errors.dueDate && (
-            <p className="text-sm text-red-500">{errors.dueDate.message}</p>
-          )}
+        {/* Date Preview */}
+        <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+          <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Timeline Preview
+          </h4>
+          <div className="text-sm space-y-1">
+            <p>
+              <span className="text-muted-foreground">Issue:</span>{' '}
+              {new Date(watch('issueDate')).toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Due:</span>{' '}
+              {new Date(watch('dueDate')).toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </p>
+            <p className="pt-1 text-xs">
+              Payment terms: {
+                Math.ceil((new Date(watch('dueDate')).getTime() - new Date(watch('issueDate')).getTime()) / (1000 * 60 * 60 * 24))
+              } days
+            </p>
+          </div>
         </div>
       </div>
+    ),
 
-      {/* Invoice Items */}
+    // Step 2: Invoice Items
+    (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label className="text-base font-semibold">Invoice Items</Label>
@@ -238,7 +387,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
         {fields.map((field, index) => (
           <Card key={field.id} className="relative">
             <CardContent className="p-4 space-y-4">
-              {/* Description - Full width on all devices */}
               <div className="space-y-2">
                 <Label htmlFor={`items.${index}.description`} className="text-xs">
                   Description *
@@ -248,7 +396,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   {...register(`items.${index}.description`)}
                   placeholder="Service description"
                   className="w-full text-sm"
-                  autoComplete="off"
                 />
                 {errors.items?.[index]?.description && (
                   <p className="text-sm text-red-500">
@@ -257,7 +404,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 )}
               </div>
 
-              {/* Grid for other fields */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor={`items.${index}.itemType`} className="text-xs">
@@ -346,7 +492,6 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 </div>
               </div>
 
-              {/* Line Total and Remove Button */}
               <div className="flex items-center justify-between pt-2 border-t">
                 <div>
                   <p className="text-xs text-muted-foreground">Line Total</p>
@@ -374,90 +519,108 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
         {errors.items && (
           <p className="text-sm text-red-500">{errors.items.message}</p>
         )}
-      </div>
 
-      {/* Totals */}
-      <Card className="bg-muted/50">
-        <CardContent className="p-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal:</span>
-              <span className="font-medium">${subtotal.toFixed(2)}</span>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="space-y-2">
-                <Label htmlFor="taxRate">Tax Rate (%)</Label>
-                <Input
-                  id="taxRate"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  {...register('taxRate', { 
-                    valueAsNumber: true,
-                    onChange: (e) => {
-                      const value = parseFloat(e.target.value);
-                      if (isNaN(value) || value < 0) {
-                        setValue('taxRate', 0);
-                      } else if (value > 100) {
-                        setValue('taxRate', 100);
-                      }
-                    }
-                  })}
-                  placeholder="0"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="discountAmount">Discount Amount</Label>
-                <Input
-                  id="discountAmount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  {...register('discountAmount', { 
-                    valueAsNumber: true,
-                    onChange: (e) => {
-                      const value = parseFloat(e.target.value);
-                      if (isNaN(value) || value < 0) {
-                        setValue('discountAmount', 0);
-                      }
-                    }
-                  })}
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-between text-sm pt-2">
-              <span className="text-muted-foreground">Tax ({taxRate}%):</span>
-              <span className="font-medium">${taxAmount.toFixed(2)}</span>
-            </div>
-
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Discount:</span>
-              <span className="font-medium">-${discountAmount.toFixed(2)}</span>
-            </div>
-
-            <div className="border-t pt-2 mt-2">
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total:</span>
-                <span>${total.toFixed(2)}</span>
-              </div>
-            </div>
+        {/* Items Summary */}
+        {items.length > 0 && (
+          <div className="mt-2 text-sm text-right text-muted-foreground">
+            {items.length} item{items.length !== 1 ? 's' : ''} · Subtotal: ${subtotal.toFixed(2)}
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
+    ),
 
-      {/* Notes and Terms */}
+    // Step 3: Totals
+    (
+      <div className="space-y-4">
+        <Card className="bg-muted/50">
+          <CardContent className="p-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                  <Input
+                    id="taxRate"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    {...register('taxRate', { 
+                      valueAsNumber: true,
+                      onChange: (e) => {
+                        const value = parseFloat(e.target.value);
+                        if (isNaN(value) || value < 0) {
+                          setValue('taxRate', 0);
+                        } else if (value > 100) {
+                          setValue('taxRate', 100);
+                        }
+                      }
+                    })}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="discountAmount">Discount Amount ($)</Label>
+                  <Input
+                    id="discountAmount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...register('discountAmount', { 
+                      valueAsNumber: true,
+                      onChange: (e) => {
+                        const value = parseFloat(e.target.value);
+                        if (isNaN(value) || value < 0) {
+                          setValue('discountAmount', 0);
+                        }
+                      }
+                    })}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-3">Invoice Summary</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  </div>
+                  
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tax ({taxRate}%):</span>
+                    <span className="font-medium">${taxAmount.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Discount:</span>
+                    <span className="font-medium text-red-600">-${discountAmount.toFixed(2)}</span>
+                  </div>
+
+                  <div className="border-t pt-2 mt-2">
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>Total Amount:</span>
+                      <span className="text-primary">${total.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    ),
+
+    // Step 4: Notes
+    (
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="notes">Notes</Label>
           <textarea
             id="notes"
             {...register('notes')}
-            rows={3}
+            rows={4}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             placeholder="Additional notes to display on the invoice..."
           />
@@ -468,30 +631,65 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
           <textarea
             id="termsAndConditions"
             {...register('termsAndConditions')}
-            rows={3}
+            rows={4}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             placeholder="Payment terms, late fees, etc."
           />
         </div>
-      </div>
 
-      {/* Form Actions */}
-      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-2 pt-4 border-t">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={onCancel} 
-          className="w-full sm:w-auto min-h-[44px]"
+        {/* Final Review */}
+        <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+          <h4 className="font-medium mb-3 flex items-center gap-2">
+            <Check className="h-4 w-4 text-green-600" />
+            Ready to Create
+          </h4>
+          <div className="text-sm space-y-2">
+            <p><span className="text-muted-foreground">Client:</span> {
+              clients?.find(c => c.id === getValues('clientId'))?.companyName || 'Not selected'
+            }</p>
+            <p><span className="text-muted-foreground">Items:</span> {items.length}</p>
+            <p><span className="text-muted-foreground">Total Amount:</span> ${total.toFixed(2)}</p>
+            <p><span className="text-muted-foreground">Due Date:</span> {
+              new Date(getValues('dueDate')).toLocaleDateString()
+            }</p>
+          </div>
+        </div>
+      </div>
+    ),
+  ];
+
+  return (
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <StepperTabs
+        steps={steps}
+        currentStep={currentStep}
+        onStepChange={setCurrentStep}
+      >
+        {stepContents}
+      </StepperTabs>
+
+      {/* Navigation Buttons */}
+      <div className="flex justify-between pt-4 border-t">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={currentStep === 0 ? onCancel : handlePrevious}
         >
-          Cancel
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          {currentStep === 0 ? 'Cancel' : 'Previous'}
         </Button>
-        <Button 
-          type="submit" 
-          disabled={isSubmitting} 
-          className="w-full sm:w-auto min-h-[44px]"
-        >
-          {isSubmitting ? 'Creating Invoice...' : 'Create Invoice'}
-        </Button>
+
+        {currentStep < steps.length - 1 ? (
+          <Button type="button" onClick={handleNext}>
+            Next
+            <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        ) : (
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating...' : 'Create Invoice'}
+            <Check className="ml-2 h-4 w-4" />
+          </Button>
+        )}
       </div>
     </form>
   );

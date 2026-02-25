@@ -1,5 +1,5 @@
-// src/components/projects/ProjectForm.tsx - Updated with DateTimePicker
-import React from 'react';
+// src/components/projects/ProjectForm.tsx
+import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,9 +7,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
+import { StepperTabs } from '@/components/ui/stepper-tabs';
 import { ProjectCreateRequest, ProjectPriority } from '@/types';
 import { useClients } from '@/hooks/useClients';
 import { formatDateTimeForAPI } from '@/utils/dateUtils';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  FolderKanban,
+  Calendar,
+  DollarSign,
+  Globe,
+  Users,
+} from 'lucide-react'; 
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required'),
@@ -33,11 +44,39 @@ interface ProjectFormProps {
   initialData?: Partial<ProjectFormData>;
 }
 
+const steps = [
+  { 
+    id: 'basic', 
+    title: 'Basic Info', 
+    icon: FolderKanban,
+    description: 'Project name, description and client'
+  },
+  { 
+    id: 'timeline', 
+    title: 'Timeline', 
+    icon: Calendar,
+    description: 'Set project dates and priority'
+  },
+  { 
+    id: 'budget', 
+    title: 'Budget', 
+    icon: DollarSign,
+    description: 'Financial details and rates'
+  },
+  { 
+    id: 'urls', 
+    title: 'URLs', 
+    icon: Globe,
+    description: 'Repository and environment URLs'
+  },
+];
+
 export const ProjectForm: React.FC<ProjectFormProps> = ({
   onSubmit,
   onCancel,
   initialData,
 }) => {
+  const [currentStep, setCurrentStep] = useState(0);
   const { clients } = useClients();
 
   const {
@@ -45,6 +84,8 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
+    trigger,
+    getValues,
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -54,6 +95,35 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
       deadline: initialData?.deadline ? new Date(initialData.deadline) : undefined,
     },
   });
+
+  const handleNext = async () => {
+    let fieldsToValidate: string[] = [];
+    
+    switch (currentStep) {
+      case 0: // Basic Info
+        fieldsToValidate = ['name', 'description', 'clientId'];
+        break;
+      case 1: // Timeline
+        fieldsToValidate = ['startDate', 'deadline', 'priority'];
+        break;
+      case 2: // Budget
+        fieldsToValidate = ['estimatedBudget', 'hourlyRate'];
+        break;
+      case 3: // URLs
+        fieldsToValidate = ['repositoryUrl', 'stagingUrl', 'productionUrl'];
+        break;
+    }
+
+    const isValid = fieldsToValidate.length ? await trigger(fieldsToValidate as any) : true;
+    
+    if (isValid) {
+      setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+    }
+  };
+
+  const handlePrevious = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
 
   const handleFormSubmit = async (data: ProjectFormData) => {
     const formattedData: ProjectCreateRequest = {
@@ -72,8 +142,9 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
     await onSubmit(formattedData);
   };
 
-  return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+  const stepContents = [
+    // Step 0: Basic Information
+    (
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="name">Project Name *</Label>
@@ -93,7 +164,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           <textarea
             id="description"
             {...register('description')}
-            rows={3}
+            rows={4}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             placeholder="Project description..."
           />
@@ -118,6 +189,24 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           )}
         </div>
 
+        {/* Quick client stats */}
+        {getValues('clientId') && (
+          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2 text-sm">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Selected client:</span>
+              <span className="font-medium">
+                {clients?.find(c => c.id === getValues('clientId'))?.companyName}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    ),
+
+    // Step 1: Timeline
+    (
+      <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Start Date & Time</Label>
@@ -166,9 +255,29 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           </select>
         </div>
 
+        {/* Timeline preview */}
+        {(getValues('startDate') || getValues('deadline')) && (
+          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <h4 className="text-sm font-medium mb-2">Timeline Preview</h4>
+            <div className="text-sm space-y-1">
+              {getValues('startDate') && (
+                <p><span className="text-muted-foreground">Start:</span> {getValues('startDate')?.toLocaleString()}</p>
+              )}
+              {getValues('deadline') && (
+                <p><span className="text-muted-foreground">Deadline:</span> {getValues('deadline')?.toLocaleString()}</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    ),
+
+    // Step 2: Budget
+    (
+      <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="estimatedBudget">Estimated Budget</Label>
+            <Label htmlFor="estimatedBudget">Estimated Budget ($)</Label>
             <Input
               id="estimatedBudget"
               type="number"
@@ -180,7 +289,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="hourlyRate">Hourly Rate</Label>
+            <Label htmlFor="hourlyRate">Hourly Rate ($/hr)</Label>
             <Input
               id="hourlyRate"
               type="number"
@@ -192,6 +301,26 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
           </div>
         </div>
 
+        {/* Budget summary */}
+        {(getValues('estimatedBudget') || getValues('hourlyRate')) && (
+          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <h4 className="text-sm font-medium mb-2">Budget Summary</h4>
+            <div className="text-sm space-y-1">
+              {getValues('estimatedBudget') && (
+                <p><span className="text-muted-foreground">Total Budget:</span> ${getValues('estimatedBudget')?.toFixed(2)}</p>
+              )}
+              {getValues('hourlyRate') && (
+                <p><span className="text-muted-foreground">Hourly Rate:</span> ${getValues('hourlyRate')?.toFixed(2)}/hr</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    ),
+
+    // Step 3: URLs
+    (
+      <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="repositoryUrl">Repository URL</Label>
           <Input
@@ -201,6 +330,9 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
             placeholder="https://github.com/..."
             className="w-full"
           />
+          {errors.repositoryUrl && (
+            <p className="text-sm text-red-500">{errors.repositoryUrl.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -212,6 +344,9 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
             placeholder="https://staging.example.com"
             className="w-full"
           />
+          {errors.stagingUrl && (
+            <p className="text-sm text-red-500">{errors.stagingUrl.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -223,16 +358,63 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
             placeholder="https://example.com"
             className="w-full"
           />
+          {errors.productionUrl && (
+            <p className="text-sm text-red-500">{errors.productionUrl.message}</p>
+          )}
+        </div>
+
+        {/* Summary */}
+        <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+          <h4 className="font-medium mb-2">Review Summary</h4>
+          <div className="text-sm space-y-1">
+            <p><span className="text-muted-foreground">Project:</span> {getValues('name') || 'Not set'}</p>
+            <p><span className="text-muted-foreground">Client:</span> {
+              clients?.find(c => c.id === getValues('clientId'))?.companyName || 'Not set'
+            }</p>
+            <p><span className="text-muted-foreground">Priority:</span> {getValues('priority')}</p>
+            <p><span className="text-muted-foreground">Timeline:</span> {
+              getValues('startDate') ? 'Set' : 'Not set'
+            } - {
+              getValues('deadline') ? 'Set' : 'Not set'
+            }</p>
+          </div>
         </div>
       </div>
+    ),
+  ];
 
-      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-2">
-        <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
-          Cancel
+  return (
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <StepperTabs
+        steps={steps}
+        currentStep={currentStep}
+        onStepChange={setCurrentStep}
+      >
+        {stepContents}
+      </StepperTabs>
+
+      {/* Navigation Buttons */}
+      <div className="flex justify-between pt-4 border-t">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={currentStep === 0 ? onCancel : handlePrevious}
+        >
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          {currentStep === 0 ? 'Cancel' : 'Previous'}
         </Button>
-        <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-          {isSubmitting ? 'Creating...' : 'Create Project'}
-        </Button>
+
+        {currentStep < steps.length - 1 ? (
+          <Button type="button" onClick={handleNext}>
+            Next
+            <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        ) : (
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Create Project'}
+            <Check className="ml-2 h-4 w-4" />
+          </Button>
+        )}
       </div>
     </form>
   );
