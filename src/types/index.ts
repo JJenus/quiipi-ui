@@ -6,4 +6,5 @@ export * from './subscription.types';
 export * from './invoice.types';
 export * from './dashboard.types';
 export * from './notification.types';
+export * from './settings.types';
 export * from './common.types';

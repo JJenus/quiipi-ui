@@ -51,3 +51,16 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
 }
+
+interface UpdateProfileData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  companyName?: string;
+}
+
+interface ChangePasswordData {
+  oldPassword: string;
+  newPassword: string;
+}

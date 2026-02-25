@@ -38,3 +38,23 @@ export interface BaseEntity {
   createdAt: string;
   updatedAt: string;
 }
+
+
+export interface Language {
+  code: string;
+  name: string;
+  nativeName: string;
+}
+
+export interface Timezone {
+  id: string;
+  name: string;
+  offset: string;
+  label: string;
+}
+
+export interface Currency {
+  code: string;
+  name: string;
+  symbol: string;
+}

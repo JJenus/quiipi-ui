@@ -62,7 +62,7 @@ export const MobileHeader: React.FC = () => {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/profile')}>
+            <DropdownMenuItem onClick={() => navigate('/settings')}>
               <span>Profile</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/settings')}>
