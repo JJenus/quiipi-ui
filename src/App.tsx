@@ -12,6 +12,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 // Pages
+import { Landing } from '@/pages/Landing';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
 import { Dashboard } from '@/pages/Dashboard';
@@ -24,9 +25,6 @@ import { SubscriptionDetails } from '@/pages/SubscriptionDetails';
 import { Invoices } from '@/pages/Invoices';
 import { InvoiceDetails } from '@/pages/InvoiceDetails';
 import { Settings } from '@/pages/Settings';
-// src/App.tsx - Add these routes inside the ProtectedRoute
-
-// Add these imports
 import { NewClient } from '@/pages/clients/NewClient';
 import { NewProject } from '@/pages/projects/NewProject';
 import { NewInvoice } from '@/pages/invoices/NewInvoice';
@@ -44,14 +42,18 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter> {/* Moved BrowserRouter to the top */}
+      <BrowserRouter>
         <ThemeProvider defaultTheme="light" storageKey="quiipi-theme">
-          <AuthProvider> {/* AuthProvider now inside BrowserRouter */}
+          <AuthProvider>
             <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              
+              {/* Protected routes */}
               <Route
-                path="/"
+                
                 element={
                   <ProtectedRoute>
                     <DashboardLayout />

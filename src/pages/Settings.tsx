@@ -6,6 +6,7 @@ import { ProfileForm } from '@/components/settings/ProfileForm';
 import { PasswordForm } from '@/components/settings/PasswordForm';
 import { PreferencesForm } from '@/components/settings/PreferencesForm';
 import { NotificationForm } from '@/components/settings/NotificationForm';
+import { BillingTab } from '@/components/settings/BillingTab';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const Settings: React.FC = () => {
@@ -48,6 +49,7 @@ export const Settings: React.FC = () => {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="preferences">Preferences</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
@@ -78,7 +80,11 @@ export const Settings: React.FC = () => {
             isSubmitting={isLoading}
           />
         </TabsContent>
+
+        <TabsContent value="billing">
+          <BillingTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
-}; 
+};
